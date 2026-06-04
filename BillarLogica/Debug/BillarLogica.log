@@ -1,0 +1,6 @@
+﻿  Assembling BillarLogica.asm...
+BillarLogica.asm(128): warning A6004: procedure argument or local not referenced : hInstDLL
+BillarLogica.asm(128): warning A6004: procedure argument or local not referenced : fdwReason
+BillarLogica.asm(128): warning A6004: procedure argument or local not referenced : lpvReserved
+     Creating library C:\Users\erick\Downloads\organizacion_y_Arquitectura_de_computadoras\proyecto2026_1\Billar8Ball\Debug\BillarLogica.lib and object C:\Users\erick\Downloads\organizacion_y_Arquitectura_de_computadoras\proyecto2026_1\Billar8Ball\Debug\BillarLogica.exp
+  BillarLogica.vcxproj -> C:\Users\erick\Downloads\organizacion_y_Arquitectura_de_computadoras\proyecto2026_1\Billar8Ball\Debug\BillarLogica.dll

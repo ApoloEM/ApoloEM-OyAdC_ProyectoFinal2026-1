@@ -1,0 +1,14 @@
+LIBRARY BillarLogica
+EXPORTS
+    InitGame
+    UpdatePhysics
+    ApplyShot
+    GetBallData
+    GetGameState
+    AreAllBallsStopped
+    EvaluateTurn
+    PlaceCueBall
+    GetTableMetrics
+    GetPocketData
+    PredictShot
+    ComputeShot
