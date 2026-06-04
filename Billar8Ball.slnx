@@ -1,0 +1,11 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="BillarGUI/BillarGUI.csproj">
+    <BuildDependency Project="BillarLogica/BillarLogica.vcxproj" />
+  </Project>
+  <Project Path="BillarLogica/BillarLogica.vcxproj" Id="32f79fba-c585-4f4b-8821-4ae354186641" />
+</Solution>
