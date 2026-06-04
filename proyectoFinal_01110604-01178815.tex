@@ -1,0 +1,832 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish, es-tabla]{babel}
+\usepackage{geometry}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\geometry{left=2.5cm, right=2.5cm, top=3cm, bottom=3cm}
+\setlength{\parskip}{1\baselineskip}
+\usepackage[style=ieee, backend=biber]{biblatex}
+\addbibresource{referencias.bib}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage[table]{xcolor}
+\usepackage{tikz}
+\usepackage{eso-pic}
+\usepackage{titlesec}
+\usepackage{multicol}
+\usepackage{hyperref}
+\usepackage{multirow}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{siunitx}
+\usepackage{tcolorbox}
+\usetikzlibrary{calc, positioning, shapes.geometric, arrows.meta, decorations.pathreplacing, shadings}
+
+\definecolor{VerdeUABC}{RGB}{75, 83, 32}
+\definecolor{VerdeClaro}{RGB}{225, 232, 200}
+\definecolor{AzulPaso}{RGB}{210, 224, 240}
+\definecolor{RojoSalto}{RGB}{176, 0, 32}
+\definecolor{verdeData}{rgb}{0,0.5,0}
+\definecolor{rowLight}{RGB}{245, 246, 240}
+
+% --- Estilos compartidos para los diagramas (arquitectura y estados) ---
+\tikzset{
+    estado/.style={
+        rounded corners=8pt, draw=VerdeUABC!85, line width=0.9pt,
+        fill=VerdeClaro, inner sep=5pt, font=\footnotesize\bfseries,
+        align=center, minimum width=2.2cm, minimum height=0.85cm},
+    estadoFin/.style={
+        rounded corners=8pt, draw=RojoSalto!75, line width=0.9pt,
+        fill=RojoSalto!10, inner sep=5pt, font=\footnotesize\bfseries,
+        align=center, minimum width=1.8cm, minimum height=0.85cm},
+    modulo/.style={
+        draw=VerdeUABC!85, line width=0.9pt, fill=AzulPaso,
+        inner sep=6pt, font=\footnotesize\bfseries, align=center,
+        minimum width=2.7cm, minimum height=1.1cm},
+    datoBox/.style={
+        draw=VerdeUABC!85, line width=0.9pt, fill=VerdeClaro,
+        inner sep=6pt, font=\footnotesize\bfseries, align=center,
+        minimum width=2.7cm, minimum height=1.1cm},
+    flecha/.style={-{Stealth[length=2.4mm]}, line width=0.9pt, color=VerdeUABC!90},
+    etiqueta/.style={font=\scriptsize\sffamily, inner sep=2pt}
+}
+
+\newcolumntype{R}{>{\centering\arraybackslash}p{2.5cm}}
+\newcolumntype{V}{>{\centering\arraybackslash}p{3cm}}
+
+\sisetup{detect-all, table-number-alignment=center}
+
+\newtcolorbox{instruccionbox}{
+colback=gray!5,
+colframe=black,
+title=Análisis de instrucción
+}
+
+\definecolor{backcolour}{rgb}{0.96,0.96,0.94}
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{codeorange}{rgb}{0.8,0.4,0}
+\definecolor{hexcolor}{RGB}{0, 102, 204}
+\definecolor{bincolor}{RGB}{153, 0, 153}
+
+\lstdefinestyle{baseStyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen}\itshape,
+    numberstyle=\tiny\color{gray},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    captionpos=b,
+    numbers=left,
+    numbersep=8pt,
+    tabsize=4,
+    showstringspaces=false
+}
+
+\lstdefinestyle{assemblyStyle}{
+    style=baseStyle,
+    language=[x86masm]Assembler,
+    keywordstyle=\color{blue}\bfseries,
+    stringstyle=\color{codepurple},
+    morekeywords={PROC, ENDP, STDCALL, PUBLIC, REAL8, DWORD, BYTE, PTR, OFFSET, STRUCT, ENDS, FLD, FLDZ, FILD, FST, FSTP, FADD, FADDP, FSUB, FSUBR, FSUBP, FMUL, FMULP, FDIV, FDIVR, FCOM, FCOMP, FCOMPP, FNSTSW, FSINCOS, FSQRT, FPATAN, FABS, FCHS, FINIT, FTST, SAHF, PUSHAD, POPAD},
+    morecomment=[l]{;},
+    commentstyle=\color{codegreen}\itshape
+}
+
+\lstdefinestyle{csharpStyle}{
+    style=baseStyle,
+    language={[Sharp]C},
+    keywordstyle=\color{blue}\bfseries,
+    stringstyle=\color{codepurple},
+    morekeywords={DllImport, extern, var, partial, enum, double, struct},
+    commentstyle=\color{codegreen}\itshape
+}
+
+\lstset{style=assemblyStyle}
+
+\newcommand{\inst}[1]{\texttt{\textbf{#1}}}
+\newcommand{\reg}[1]{\texttt{\textcolor{blue}{#1}}}
+\newcommand{\hex}[1]{\texttt{\textcolor{hexcolor}{#1}}}
+\newcommand{\bin}[1]{\texttt{\textcolor{bincolor}{#1}}}
+\newcommand{\instrformat}[2]{\texttt{\textbf{#1} #2}}
+
+% --- Paleta y elementos de billar para las figuras TikZ ---
+\definecolor{Fieltro}{RGB}{12, 110, 60}
+\definecolor{FieltroOsc}{RGB}{8, 77, 41}
+\definecolor{Madera}{RGB}{107, 62, 32}
+\definecolor{Laton}{RGB}{212, 166, 66}
+\definecolor{BolaAmarillo}{RGB}{247, 197, 25}
+\definecolor{BolaAzul}{RGB}{28, 101, 192}
+\definecolor{BolaRojo}{RGB}{198, 40, 40}
+\definecolor{BolaMorado}{RGB}{106, 27, 154}
+\definecolor{BolaNaranja}{RGB}{239, 108, 0}
+\definecolor{BolaVerde}{RGB}{46, 125, 50}
+\definecolor{BolaVino}{RGB}{123, 36, 28}
+
+% Radio de dibujo de las bolas en las figuras
+\newcommand{\bolaR}{0.30}
+% Bola blanca (esfera sombreada con borde para que se vea sobre el fieltro)
+\newcommand{\bolaBlanca}[2]{%
+  \shade[ball color=white] (#1,#2) circle (\bolaR);
+  \draw[gray!55, line width=0.4pt] (#1,#2) circle (\bolaR);
+}
+% Bola lisa: #1=x #2=y #3=color #4=numero
+\newcommand{\bolaSolida}[4]{%
+  \shade[ball color=#3] (#1,#2) circle (\bolaR);
+  \fill[white] (#1,#2) circle (0.135);
+  \node[font=\tiny\bfseries, text=black, inner sep=0] at (#1,#2) {#4};
+}
+% Bola rayada: banda de color sobre fondo blanco
+\newcommand{\bolaRayada}[4]{%
+  \begin{scope}
+    \shade[ball color=white] (#1,#2) circle (\bolaR);
+    \clip (#1,#2) circle (\bolaR);
+    \shade[ball color=#3] (#1,#2) ellipse (0.34 and 0.15);
+  \end{scope}
+  \fill[white] (#1,#2) circle (0.135);
+  \node[font=\tiny\bfseries, text=black, inner sep=0] at (#1,#2) {#4};
+}
+% Bola ocho
+\newcommand{\bolaOcho}[2]{%
+  \shade[ball color=black!92] (#1,#2) circle (\bolaR);
+  \fill[white] (#1,#2) circle (0.135);
+  \node[font=\tiny\bfseries, text=black, inner sep=0] at (#1,#2) {8};
+}
+
+% Estilos de celda para los diagramas de memoria y de la pila FPU
+\tikzset{
+  celdaMem/.style={draw=VerdeUABC!80, line width=0.7pt, minimum width=1.05cm,
+    minimum height=0.85cm, font=\scriptsize\ttfamily, fill=white, inner sep=1pt, align=center},
+  celdaPila/.style={draw=VerdeUABC!80, line width=0.8pt, minimum width=3.0cm,
+    minimum height=0.6cm, font=\footnotesize\ttfamily, fill=VerdeClaro!55},
+  pilaVacia/.style={draw=gray!50, line width=0.6pt, minimum width=3.0cm,
+    minimum height=0.6cm, font=\footnotesize\ttfamily\itshape, fill=gray!8, text=gray}
+}
+
+% Marcador para capturas pendientes: muestra un recuadro gris.
+% Para insertar la imagen real, reemplazar por:
+%   \fbox{\includegraphics[width=...]{fotos/nombre.png}}
+\newcommand{\imagePlaceholder}[3]{%
+    \setlength{\fboxsep}{0pt}%
+    \fbox{\begin{minipage}[c][#2][c]{#1}\centering\color{gray}\itshape\small #3\end{minipage}}%
+}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=blue,
+    citecolor=black
+}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\footnotesize OyAdeC}
+\chead{\footnotesize Proyecto Final: Billar 8-ball}
+\rhead{\footnotesize 1110604 - 1178815}
+\cfoot{\thepage}
+
+\titleformat{\section}{\large\bfseries\color{VerdeUABC}}{\thesection.}{1em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection.}{1em}{}
+\titleformat{\subsubsection}{\small\bfseries}{\thesubsubsection.}{1em}{}
+
+\newcommand{\tituloProyecto}{MASM x86 y Lenguaje de Alto Nivel:\\Billar 8-ball}
+\newcommand{\profesor}{Dr. Omar Muñoz Urías}
+\newcommand{\fechaEntrega}{04/JUNIO/2026}
+
+% --- INTEGRANTES DEL EQUIPO ---
+\newcommand{\integranteA}{Moya Monreal Erick Anselmo --- 1110604}
+\newcommand{\integranteB}{Martínez Zavala Alexandra --- 1178815} % TODO: matrícula de Alexandra
+
+\newcommand{\MarcoPagina}{
+    \begin{tikzpicture}[remember picture, overlay]
+        \draw [line width=1.2pt, color=VerdeUABC!90]
+            ($(current page.north west) + (0.7cm,-0.7cm)$) rectangle ($(current page.south east) + (-0.7cm,0.7cm)$);
+        \draw [line width=0.6pt, color=VerdeUABC!60]
+            ($(current page.north west) + (0.85cm,-0.85cm)$) rectangle ($(current page.south east) + (-0.85cm,0.85cm)$);
+    \end{tikzpicture}
+}
+
+\begin{document}
+
+\begin{titlepage}
+    \begin{center}
+        \includegraphics[width=4.5cm]{../recursos/escudo-actualizado-2022.png}
+        \hspace{1cm}
+        \includegraphics[width=5.5cm]{../recursos/1593484343817.jpg}
+        \vspace{0.6cm}
+
+        \LARGE \textbf{Universidad Autónoma de Baja California}\\
+        \Large Facultad de Ingeniería Mexicali\\
+        \Large Ingeniería en Computación\\
+        \vspace{0.6cm}
+
+        {\color{VerdeUABC}\rule{\linewidth}{0.5mm}} \\
+        \large \textbf{Reporte de Proyecto Final}\\
+        \vspace{0.1cm}
+        {\Huge {\tituloProyecto}}\\
+        {\color{VerdeUABC}\rule{\linewidth}{0.5mm}}
+
+        \vspace{0.5cm}
+        \begin{minipage}{0.45\textwidth}
+            \centering
+            \textbf{Materia:}\\ Organización y Arquitectura\\ de Computadoras
+        \end{minipage}
+        \begin{minipage}{0.45\textwidth}
+            \centering
+            \textbf{Profesor:}\\ \profesor
+        \end{minipage}
+
+        \vfill
+        \textbf{Integrantes del equipo:}\\
+        \vspace{0.2cm}
+        \integranteA \\
+        \integranteB \\
+        \vspace{1cm}
+        \textbf{Fecha de entrega} \\ \fechaEntrega \\
+        \vfill
+        {\color{VerdeUABC}\rule{4cm}{0.1mm}}\\
+        Mexicali, Baja California\\ \today
+    \end{center}
+\end{titlepage}
+
+\newpage
+\AddToShipoutPictureBG{\MarcoPagina}
+\begingroup
+\small
+\setlength{\parskip}{8pt}
+\tableofcontents
+\endgroup
+
+\newpage
+\section{Introducción}
+El desarrollo de software de calidad rara vez ocurre en un solo nivel de abstracción; en la práctica profesional es frecuente combinar un lenguaje de alto nivel, que aporta productividad e interfaces ricas, con lenguaje ensamblador, que otorga control absoluto sobre los registros, la memoria y la unidad de punto flotante del procesador. Esta cooperación permite delegar la lógica crítica a rutinas de bajo nivel mientras la capa de presentación se mantiene clara y mantenible.
+
+Este proyecto lleva esa idea a un juego de billar (\textit{8-ball}) en el que la \textbf{totalidad de la lógica y la física} reside en lenguaje ensamblador \texttt{MASM x86}, compilado como una biblioteca de enlace dinámico (\texttt{BillarLogica.dll}), mientras que la interfaz gráfica, escrita en C\# con \textit{Windows Presentation Foundation} (WPF), se limita estrictamente a dibujar la mesa y a capturar el ratón. El motor en ensamblador integra el movimiento de las bolas, aplica fricción, resuelve las colisiones elásticas entre bolas y contra las bandas, detecta los embocados en las troneras, predice la trayectoria del tiro y arbitra las reglas completas del 8-ball. La interfaz nunca decide nada sobre el estado del juego, únicamente le pregunta a la DLL qué ocurrió en cada cuadro y vuelve a pintar el resultado.
+
+\section{Problemática y Justificación}
+El planteamiento fue enfrentarnos al reto de \textbf{combinar un lenguaje de bajo nivel con uno de alto nivel}, que toda la lógica del programa se escribiera en ensamblador (para ejercer un control preciso del flujo, de la memoria y de los recursos de la máquina) delegando únicamente la interfaz gráfica a un lenguaje de alto nivel. El tema fue libre; mi compañera y yo elegimos un simulador de billar porque nos pareció una excelente manera de demostrar el uso del ensamblador tanto para el \textbf{cálculo matemático} (trigonometría, vectores y colisiones) como para el \textbf{manejo explícito de la memoria} (estructuras compartidas, punteros y desplazamientos).
+
+El proyecto se justifica como una oportunidad para aplicar los conceptos de organización y arquitectura de computadoras en un contexto práctico, integrando la teoría con la implementación real. Además, el desarrollo de un juego de billar 8-ball permite explorar una amplia gama de temas: desde la física del movimiento y las colisiones hasta la gestión de estados y reglas del juego, todo ello implementado en ensamblador. La interoperabilidad entre C\# y ensamblador también es un aspecto crucial, ya que refleja escenarios reales donde se combinan lenguajes para aprovechar sus fortalezas respectivas.
+
+\newpage
+\section{Objetivos del proyecto}
+\textbf{Objetivo General}
+
+Diseñar e implementar un programa que combine lenguaje ensamblador \texttt{MASM x86} y un lenguaje de alto nivel (C\#/WPF) para crear un simulador de billar 8-ball híbrido en el que la lógica y la física completas residan en lenguaje ensamblador \texttt{MASM x86} expuesto como una DLL, y la interfaz gráfica en C\#/WPF actúe únicamente como capa de presentación y captura de entrada, demostrando la interoperabilidad entre ambos lenguajes.
+
+\textbf{Objetivos Específicos}
+\begin{itemize}
+    \item \textbf{Separar y confinar} la totalidad de la lógica (física, colisiones, reglas y predicción) al motor en ensamblador, reservando para C\# exclusivamente el renderizado y la lectura del ratón.
+    \item \textbf{Implementar} la integración del movimiento y la fricción de las bolas en cada cuadro empleando la pila de la FPU y la aritmética de doble precisión.
+    \item \textbf{Resolver} las colisiones elásticas entre bolas.
+    \item \textbf{Calcular} en ensamblador el ángulo y la fuerza del tiro a partir del gesto del ratón, así como la predicción de la trayectoria antes de ejecutar el tiro.
+    \item \textbf{Arbitrar} las reglas del 8-ball mediante una máquina de estados, evaluando faltas, asignación de grupos y la condición de victoria de forma independiente para cada jugador.
+    \item \textbf{Exponer} el motor como una DLL con convención \texttt{stdcall} e invocarla desde C\# mediante \textit{Platform Invoke}, compartiendo estructuras con una disposición de memoria idéntica.
+\end{itemize}
+
+\section{Marco Teórico}
+\subsection{Programación Híbrida e Interoperabilidad C\#/Ensamblador}
+La programación híbrida consiste en combinar dos lenguajes dentro de un mismo ejecutable, asignando a cada uno la tarea para la que resulta más adecuado. A diferencia de la combinación C\,/\,ensamblador en línea, donde el bloque \texttt{\_\_asm} comparte el espacio de la función anfitriona, un proyecto en C\# no admite ensamblador en línea, por lo que la cooperación se logra compilando el código \texttt{MASM} como una \textbf{biblioteca de enlace dinámico} (DLL) que exporta sus funciones, e invocándolas desde C\# mediante \textit{Platform Invoke} \cite{microsoft2023pinvoke}. El atributo \texttt{[DllImport]} indica el nombre de la DLL y la convención de llamada, y el motor de \textit{marshalling} traduce los tipos entre el mundo administrado de .NET y el mundo nativo.
+
+El módulo en ensamblador se declara con \texttt{.model flat, stdcall}, de modo que tanto sus procedimientos como las llamadas desde C\# siguen la convención \texttt{stdcall}, en la que los argumentos se apilan de derecha a izquierda y es la \textbf{función llamada} quien libera la pila al retornar \cite{irvine2020assembly}. Las funciones que se desean visibles se enumeran en un archivo de definición (\texttt{.def}) y se marcan con \texttt{PUBLIC}, lo que permite que el enlazador genere la tabla de exportación de la DLL.
+
+\subsection{La Unidad de Punto Flotante x87 (FPU)}
+La física del billar opera con números reales: posiciones, velocidades, ángulos y distancias. El procesador x86 maneja estos valores en la \textbf{unidad de punto flotante x87}, que organiza sus ocho registros como una \textbf{pila} (\texttt{ST(0)} a \texttt{ST(7)}) en lugar de registros de propósito general \cite{intel2023sdm}. La instrucción \texttt{FLD} empuja un operando de memoria a la cima de la pila, \texttt{FSTP} extrae la cima hacia memoria, y las operaciones aritméticas (\texttt{FADD}, \texttt{FSUB}, \texttt{FMUL}, \texttt{FDIV}) combinan la cima con otro operando. Cada valor se almacena como \texttt{REAL8}, el formato de doble precisión de 64 bits.
+
+Una particularidad de la FPU es que las comparaciones no afectan directamente a las banderas del procesador: \texttt{FCOMP} compara y deja el resultado en la palabra de estado de la FPU, que debe transferirse con \texttt{FNSTSW AX} y volcarse a las banderas con \texttt{SAHF} antes de poder usar un salto condicional. Este idioma \texttt{FCOMP\,/\,FNSTSW\,/\,SAHF} se repite en todo el motor cada vez que se necesita decidir con base en un número real. Además, la x87 ofrece funciones en \textit{hardware}, \texttt{FSQRT} para la raíz cuadrada, \texttt{FSINCOS} para obtener seno y coseno simultáneamente, y \texttt{FPATAN} para el arcotangente de dos argumentos, indispensables para la trigonometría del tiro.
+
+La Figura~\ref{fig:pilafpu} ilustra cómo evoluciona la pila de la FPU al preparar un tiro: cada operación empuja o consume valores en la cima, sin registros con nombre.
+
+\begin{figure}[H]
+\centering
+\resizebox{0.92\textwidth}{!}{%
+\begin{tikzpicture}
+    \node[font=\footnotesize\bfseries] at (1.5,1.15) {Pila vacía};
+    \node[pilaVacia] (a0) at (1.5,0.4) {ST(0)};
+    \node[pilaVacia] (a1) at (1.5,-0.25) {ST(1)};
+    \node[pilaVacia] (a2) at (1.5,-0.9) {ST(2)};
+    \node[font=\scriptsize, gray] at (1.5,-1.35) {$\vdots$};
+    \node[etiqueta, left=1pt of a0] {cima};
+
+    \node[font=\footnotesize\bfseries] at (6.5,1.15) {Tras \texttt{FLD angle}};
+    \node[celdaPila] (b0) at (6.5,0.4) {$\theta$};
+    \node[pilaVacia] (b1) at (6.5,-0.25) {ST(1)};
+    \node[pilaVacia] (b2) at (6.5,-0.9) {ST(2)};
+    \node[font=\scriptsize, gray] at (6.5,-1.35) {$\vdots$};
+
+    \node[font=\footnotesize\bfseries] at (11.5,1.15) {Tras \texttt{FSINCOS}};
+    \node[celdaPila] (c0) at (11.5,0.4) {$\cos\theta$};
+    \node[celdaPila] (c1) at (11.5,-0.25) {$\sin\theta$};
+    \node[pilaVacia] (c2) at (11.5,-0.9) {ST(2)};
+    \node[font=\scriptsize, gray] at (11.5,-1.35) {$\vdots$};
+
+    \draw[flecha] (3.05,0.075) -- node[etiqueta, above]{\texttt{FLD}} (4.95,0.075);
+    \draw[flecha] (8.05,0.075) -- node[etiqueta, above]{\texttt{FSINCOS}} (9.95,0.075);
+\end{tikzpicture}%
+}
+\caption{La pila de la FPU al preparar un tiro. \texttt{FLD} empuja el ángulo a la cima \texttt{ST(0)}; \texttt{FSINCOS} lo reemplaza por su coseno y deja el seno en \texttt{ST(1)}, ambos listos para escalar la velocidad de la blanca.}
+\label{fig:pilafpu}
+\end{figure}
+
+\subsection{Geometría de la Mesa y Elementos del Juego}
+El motor trabaja sobre un sistema de coordenadas en píxeles, el área jugable es un rectángulo de $800\times400$ px (de \num{50} a \num{850} en X y de \num{50} a \num{450} en Y), con seis troneras de radio \num{22} px y dieciséis bolas de radio \num{14} px. Todas estas dimensiones viven como constantes \texttt{REAL8} en el motor y se entregan a la interfaz para que dibuje exactamente sobre las mismas coordenadas, evitando cualquier desfase entre la física y el render. La Figura~\ref{fig:mesa} muestra la disposición de la mesa con el rack inicial y la bola blanca en la cabecera.
+
+\begin{figure}[H]
+\centering
+\resizebox{0.9\textwidth}{!}{%
+\begin{tikzpicture}
+    \fill[Madera, rounded corners=16pt] (-0.7,-0.7) rectangle (14.7,7.7);
+    \shade[top color=Fieltro, bottom color=FieltroOsc] (0,0) rectangle (14,7);
+    \draw[white!70, line width=0.6pt, dashed] (3.5,0) -- (3.5,7);
+    \foreach \x/\y in {0/0,7/0,14/0,0/7,7/7,14/7}{
+        \fill[black] (\x,\y) circle (0.42);
+        \fill[black!78] (\x,\y) circle (0.30);
+    }
+    \foreach \dx in {1.75,3.5,5.25,8.75,10.5,12.25}{
+        \fill[Laton] (\dx,7.35) circle (0.07);
+        \fill[Laton] (\dx,-0.35) circle (0.07);
+    }
+    \bolaBlanca{3.5}{3.5}
+    \bolaSolida{9.2}{3.5}{BolaAmarillo}{1}
+    \bolaRayada{9.74}{3.19}{BolaAzul}{10}
+    \bolaSolida{9.74}{3.81}{BolaRojo}{3}
+    \bolaRayada{10.28}{2.88}{BolaVino}{15}
+    \bolaOcho{10.28}{3.5}
+    \bolaSolida{10.28}{4.12}{BolaNaranja}{5}
+    \bolaSolida{10.82}{2.57}{BolaVerde}{6}
+    \bolaRayada{10.82}{3.19}{BolaMorado}{12}
+    \bolaRayada{10.82}{3.81}{BolaNaranja}{13}
+    \bolaSolida{10.82}{4.43}{BolaAzul}{2}
+    \bolaRayada{11.36}{2.26}{BolaVerde}{14}
+    \bolaSolida{11.36}{2.88}{BolaMorado}{4}
+    \bolaRayada{11.36}{3.5}{BolaRojo}{11}
+    \bolaSolida{11.36}{4.12}{BolaVino}{7}
+    \bolaRayada{11.36}{4.74}{BolaAmarillo}{9}
+    \node[font=\scriptsize, text=white] at (1.8,4.6) {bola blanca};
+    \draw[white, line width=0.5pt, -{Stealth[length=1.6mm]}] (1.8,4.35) -- (3.15,3.7);
+    \node[font=\scriptsize, align=center, text=black] at (12.4,8.5) {6 troneras\\(radio 22 px)};
+    \draw[Madera, line width=0.8pt, -{Stealth[length=1.8mm]}] (12.9,8.0) -- (13.85,7.25);
+    \node[font=\scriptsize, align=center, text=black] at (8.0,8.5) {rack inicial\\(15 bolas)};
+    \draw[Madera, line width=0.8pt, -{Stealth[length=1.8mm]}] (8.5,8.0) -- (9.95,4.9);
+    \draw[Laton, line width=1pt, {Stealth[length=2mm]}-{Stealth[length=2mm]}] (0,-1.2) -- (14,-1.2)
+        node[midway, fill=Madera, text=white, inner sep=2.5pt, font=\scriptsize]{X: 50 a 850 px (área jugable)};
+    \draw[Laton, line width=1pt, {Stealth[length=2mm]}-{Stealth[length=2mm]}] (-1.2,0) -- (-1.2,7)
+        node[midway, fill=Madera, text=white, inner sep=2.5pt, font=\scriptsize, rotate=90]{Y: 50 a 450 px};
+\end{tikzpicture}%
+}
+\caption{Mesa de billar y rack inicial. El motor usa coordenadas en píxeles (área jugable de $800\times400$ px); la bola blanca arranca en la cabecera y las 15 bolas numeradas forman el triángulo con la 8 al centro.}
+\label{fig:mesa}
+\end{figure}
+
+Cada bola se distingue por su \textbf{tipo}, almacenado como un entero en su estructura, la \textbf{blanca} (con la que se golpea), las \textbf{lisas} (números 1 a 7), las \textbf{rayadas} (9 a 15) y la \textbf{bola 8}. Ese tipo es el que el motor consulta para saber a qué jugador pertenece cada bola, como ilustra la Figura~\ref{fig:bolas}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=1.5]
+    \bolaBlanca{0}{0}
+    \bolaSolida{1.3}{0}{BolaRojo}{3}
+    \bolaRayada{2.6}{0}{BolaAzul}{11}
+    \bolaOcho{3.9}{0}
+    \node[font=\scriptsize] at (0,-0.55) {blanca};
+    \node[font=\scriptsize] at (1.3,-0.55) {lisa};
+    \node[font=\scriptsize] at (2.6,-0.55) {rayada};
+    \node[font=\scriptsize] at (3.9,-0.55) {ocho};
+\end{tikzpicture}
+\caption{Los cuatro tipos de bola: blanca (taco), lisa (1--7), rayada (9--15) y la bola 8, que decide la partida.}
+\label{fig:bolas}
+\end{figure}
+
+\subsection{Modelo Físico: Movimiento, Fricción y Restitución}
+El motor avanza la simulación en pasos discretos (un paso por cuadro, a unos 60 cuadros por segundo). En cada paso, la posición de cada bola se actualiza sumándole su velocidad, y a continuación la velocidad se atenúa multiplicándola por un \textbf{coeficiente de fricción} ligeramente menor que uno (\num{0.985}), lo que produce una desaceleración exponencial realista hasta que la bola se detiene al caer por debajo de un umbral mínimo \cite{patterson2016computer}. Cuando una bola alcanza una banda, su componente de velocidad perpendicular a la pared se invierte y se multiplica por un \textbf{coeficiente de restitución} (\num{0.95}), modelando la pequeña pérdida de energía del rebote.
+
+\subsection{Colisiones Elásticas y Descomposición Vectorial}
+Cuando dos bolas de igual masa chocan, el intercambio de movimiento ocurre a lo largo de la \textbf{línea que une sus centros} (la dirección normal). La componente de la velocidad relativa sobre esa normal se transfiere a la bola golpeada, mientras que la componente \textbf{tangencial} (perpendicular a la normal) la conserva la bola que golpea. Este es el fundamento de la conocida ``regla de los \ang{90}'': tras un impacto no central, la blanca y la bola objeto se separan formando un ángulo recto. El motor detecta el choque cuando la distancia entre centros es menor o igual a un diámetro (\num{28} px), calcula el vector normal unitario y proyecta sobre él las velocidades para realizar el intercambio \cite{stallings2019computer}. La Figura~\ref{fig:colision} ilustra esta descomposición.
+
+\subsection{Reglas del 8-ball como Máquina de Estados}
+El flujo de una partida puede modelarse como una máquina de estados finita. La aplicación transita entre apuntar, cargar la fuerza, ejecutar el tiro, esperar a que todo se detenga y evaluar el resultado, momento en el que el motor decide si el jugador repite, cede el turno, comete falta (y entrega ``bola en mano'' al rival) o gana la partida \cite{tanenbaum2013structured}.
+
+\section{Procedimiento}
+El desarrollo se organizó de forma incremental, partiendo de la definición de las estructuras compartidas y la comunicación entre ambos lenguajes, para avanzar después hacia la física, las colisiones y, finalmente, las reglas del juego. Las actividades realizadas fueron las siguientes:
+
+\begin{enumerate}[label=\textbf{\arabic*.}]
+    \item \textbf{Definición de las estructuras compartidas.} Se declararon en ensamblador las estructuras \texttt{Ball}, \texttt{Pocket} y \texttt{GameState}, y su espejo exacto en C\# con\\\texttt{[StructLayout(Sequential)]}, garantizando una disposición de memoria idéntica en ambos lados.
+
+    \item \textbf{Puente de interoperabilidad.} Se compiló el motor como \texttt{BillarLogica.dll} con convención \texttt{stdcall} y exportaciones en un archivo \texttt{.def}, y se declararon sus firmas en C\# mediante \texttt{[DllImport]}.
+
+    \item \textbf{Inicialización y aplicación del tiro.} Se programó \texttt{InitGame} (colocación inicial de las 16 bolas) y \texttt{ApplyShot}, que convierte ángulo y fuerza en las componentes de velocidad de la blanca usando \texttt{FSINCOS}.
+
+    \item \textbf{Integración del movimiento y fricción.} Se implementó \texttt{UpdatePhysics}, que en cada cuadro actualiza posiciones, aplica la fricción y delega en las rutinas de colisión.
+
+    \item \textbf{Colisiones bola--bola y bola--banda.} Se desarrollaron \texttt{ResolveBallCollision} (colisión elástica con descomposición normal/tangencial) y \texttt{CheckWallCollisions} (reflexión con restitución).
+
+    \item \textbf{Troneras y predicción.} Se programó la detección de embocados y la rutina \texttt{PredictShot}, que lanza un rayo desde la blanca para anticipar el primer impacto, así como \texttt{ComputeShot}, que traduce el gesto del ratón en ángulo y fuerza.
+
+    \item \textbf{Reglas del 8-ball.} Se implementó \texttt{EvaluateTurn}, la máquina de estados que arbitra faltas, asignación de grupos, repetición de turno y victoria, de forma independiente por jugador.
+
+    \item \textbf{Interfaz y pruebas.} Se construyó la GUI en C\#/WPF (renderizado de la mesa, taco, predicción y marcador) y se ejecutaron pruebas de partida completas, incluyendo casos límite (scratch, falta por grupo incorrecto y victoria con la 8).
+\end{enumerate}
+
+\newpage
+\section{Resultados con pruebas}
+\subsection{Arquitectura general del sistema}
+El sistema se organiza como un ciclo que se repite en cada cuadro de animación (\(\approx\)60 veces por segundo). La interfaz captura la entrada del usuario, invoca al motor en ensamblador a través del puente P/Invoke, y este actualiza el estado físico que la GUI vuelve a leer para dibujar. La Figura~\ref{fig:arquitectura} resume este flujo y la división de responsabilidades.
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[node distance=1.0cm]
+    \node[datoBox] (jugador) {Jugador\\\scriptsize ratón / clic};
+    \node[modulo, right=1.2cm of jugador] (gui) {Interfaz C\#/WPF\\\scriptsize BillarGUI};
+    \node[modulo, right=1.2cm of gui] (motor) {Motor MASM x86\\\scriptsize BillarLogica.dll};
+    \node[datoBox, right=1.2cm of motor] (estado) {Estado físico\\\scriptsize bolas, vel., fouls};
+
+    \draw[flecha] (jugador) -- node[etiqueta, above]{captura} (gui);
+    \draw[flecha] (gui) -- node[etiqueta, above]{P/Invoke}
+                          node[etiqueta, below]{\ttfamily stdcall} (motor);
+    \draw[flecha] (motor) -- node[etiqueta, above]{calcula} (estado);
+    % retorno: el estado se lee y se dibuja (ciclo por cuadro)
+    \draw[flecha] (estado.south) to[out=-90,in=-90]
+        node[etiqueta, below]{\texttt{GetBallData} / \texttt{GetGameState} $\rightarrow$ render ($\approx$60 fps)}
+        (gui.south);
+\end{tikzpicture}%
+}
+\caption{Arquitectura del sistema: la interfaz en C\# solo dibuja y captura; el motor en ensamblador calcula toda la física y las reglas. Cada cuadro, la GUI consulta a la DLL y repinta.}
+\label{fig:arquitectura}
+\end{figure}
+
+El motor expone su funcionalidad mediante un conjunto de funciones, todas con convención \texttt{stdcall}, resumidas en la Tabla~\ref{tab:exportadas}.
+
+\begin{table}[H]
+\centering
+\caption{Principales funciones exportadas por \texttt{BillarLogica.dll}.}
+\label{tab:exportadas}
+\small
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{
+    >{\raggedright\arraybackslash}p{4.2cm}
+    >{\raggedright\arraybackslash}p{9.0cm}
+}
+\toprule
+\rowcolor{VerdeUABC}
+\color{white}\textbf{Función} &
+\color{white}\textbf{Responsabilidad} \\
+\midrule
+\rowcolor{rowLight}
+\texttt{InitGame} & Coloca las 16 bolas y reinicia el estado de la partida \\
+\texttt{ApplyShot} & Convierte ángulo y fuerza en la velocidad de la blanca \\
+\rowcolor{rowLight}
+\texttt{UpdatePhysics} & Un paso de simulación: mover, friccionar y colisionar \\
+\texttt{EvaluateTurn} & Arbitra las reglas del 8-ball al detenerse las bolas \\
+\rowcolor{rowLight}
+\texttt{PredictShot} & Anticipa el primer impacto del tiro (línea fantasma) \\
+\texttt{ComputeShot} & Traduce el gesto del ratón en ángulo y fuerza \\
+\rowcolor{rowLight}
+\texttt{PlaceCueBall} & Recoloca la blanca tras una falta (bola en mano) \\
+\texttt{GetBallData} / \texttt{GetGameState} & Entregan a C\# el estado para dibujar \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Estructuras de datos compartidas}
+La base de la interoperabilidad es que ambos lenguajes vean los datos con la misma disposición en memoria. El Código~\ref{lst:struct} muestra la estructura \texttt{Ball} en ensamblador; su equivalente en C\# se declara con \texttt{[StructLayout(LayoutKind.Sequential)]} para forzar el mismo orden y tamaño de campos.
+
+\begin{lstlisting}[style=assemblyStyle, caption={Estructura \texttt{Ball} en ensamblador (campos REAL8 y DWORD).}, label={lst:struct}]
+Ball STRUCT
+    pos_x       REAL8   0.0     ; posicion X (pixeles)
+    pos_y       REAL8   0.0     ; posicion Y
+    vel_x       REAL8   0.0     ; velocidad X (px/cuadro)
+    vel_y       REAL8   0.0     ; velocidad Y
+    radius      REAL8   14.0    ; radio
+    ball_num    DWORD   0       ; 0=blanca, 1-7=lisas, 8=ocho, 9-15=rayadas
+    ball_type   DWORD   0       ; 0=blanca, 1=lisa, 2=rayada, 3=ocho
+    is_active   DWORD   1       ; 1=en mesa, 0=embocada
+    was_pocketed DWORD  0       ; se emboco en este turno?
+Ball ENDS
+\end{lstlisting}
+
+La clave de la interoperabilidad es que cada campo ocupa un \textbf{desplazamiento} (\textit{offset}) fijo desde la base de la estructura. La Figura~\ref{fig:memball} muestra esa disposición: cinco campos \texttt{REAL8} de 8 bytes seguidos de cuatro \texttt{DWORD} de 4 bytes, 56 bytes en total. El motor avanza de una bola a la siguiente sumando ese tamaño al puntero, y C\# debe declarar la estructura idéntica para que ambos lados lean los mismos bytes.
+
+\begin{figure}[H]
+\centering
+\resizebox{0.97\textwidth}{!}{%
+\begin{tikzpicture}[font=\scriptsize\ttfamily]
+    \def\hh{0.95}
+    \foreach \name/\off/\xa in {pos\_x/+0/0, pos\_y/+8/1.6, vel\_x/+16/3.2, vel\_y/+24/4.8, radius/+32/6.4}{
+        \filldraw[fill=VerdeClaro, draw=VerdeUABC, line width=0.7pt] (\xa,0) rectangle ({\xa+1.6},\hh);
+        \node at ({\xa+0.8},{\hh/2}) {\name};
+        \node[font=\tiny, below=2pt] at ({\xa+0.8},0) {\off};
+    }
+    \foreach \name/\off/\xa in {ball\_num/+40/8.0, ball\_type/+44/8.8, is\_active/+48/9.6, was\_pocketed/+52/10.4}{
+        \filldraw[fill=AzulPaso, draw=VerdeUABC, line width=0.7pt] (\xa,0) rectangle ({\xa+0.8},\hh);
+        \node[rotate=90, font=\tiny] at ({\xa+0.4},{\hh/2}) {\name};
+        \node[font=\tiny, below=2pt] at ({\xa+0.4},0) {\off};
+    }
+    \draw[decorate, decoration={brace, amplitude=5pt, mirror}, line width=0.7pt, VerdeUABC]
+        (0,-0.55) -- (11.2,-0.55) node[midway, below=6pt, font=\footnotesize\sffamily, text=black]{56 bytes en total};
+    \node[font=\tiny\sffamily, text=black, anchor=west] at (0,1.6) {\textcolor{VerdeUABC}{$\blacksquare$}~REAL8 (8 bytes)\quad\textcolor{AzulPaso!55!black}{$\blacksquare$}~DWORD (4 bytes)};
+\end{tikzpicture}%
+}
+\caption{Disposición en memoria de la estructura \texttt{Ball} (56 bytes). Conocer el \textit{offset} exacto de cada campo es lo que permite recorrer el arreglo de bolas con direccionamiento indirecto y compartir la estructura con C\# sin que un solo byte se desalinee.}
+\label{fig:memball}
+\end{figure}
+
+\subsection{Aplicación del tiro: trigonometría con la FPU}
+La rutina \texttt{ApplyShot} recibe el ángulo y la fuerza del tiro y los convierte en las componentes \texttt{vel\_x} y \texttt{vel\_y} de la blanca. El Código~\ref{lst:applyshot} muestra el núcleo del cálculo, que descansa en la instrucción \texttt{FSINCOS}.
+
+\begin{lstlisting}[style=assemblyStyle, caption={Conversión de ángulo y fuerza en velocidad con \texttt{FSINCOS}.}, label={lst:applyshot}]
+    FLD [ESI].ShotInput.angle  ; ST(0) = angulo del tiro
+    FSINCOS                    ; ST(0)=cos, ST(1)=sin
+    FSTP temp_cos
+    FSTP temp_sin
+
+    FLD [ESI].ShotInput.power
+    FMUL MULT_SHOT             ; aplicar multiplicador global
+    FMUL MAX_SHOT_SPEED        ; escalar por la velocidad maxima
+    FLD ST(0)                  ; duplicar la magnitud
+    FMUL temp_cos              ; vel_x = magnitud * cos(angulo)
+    FSTP [EDI].Ball.vel_x
+    FMUL temp_sin              ; vel_y = magnitud * sin(angulo)
+    FSTP [EDI].Ball.vel_y
+\end{lstlisting}
+
+\begin{instruccionbox}
+\textbf{Instrucción}
+\begin{lstlisting}
+    FLD [ESI].ShotInput.angle
+    FSINCOS
+\end{lstlisting}
+\textbf{Descripción}
+Carga el ángulo en la cima de la pila de la FPU y obtiene en una sola operación su coseno y su seno.
+\end{instruccionbox}
+
+\texttt{FSINCOS} es una instrucción trascendente que sustituye dos llamadas separadas a seno y coseno. Tras ejecutarla, la cima \texttt{ST(0)} contiene el coseno y \texttt{ST(1)} el seno del ángulo original, que se guardan en sendas variables temporales. Multiplicando la magnitud del tiro (fuerza por la velocidad máxima) por el coseno se obtiene la componente horizontal de la velocidad, y por el seno la vertical. De esta forma, una operación que en C\# sería \texttt{Math.Cos} y \texttt{Math.Sin} se resuelve aquí íntegramente en \textit{hardware} de punto flotante.
+
+\subsection{Movimiento y fricción por cuadro}
+En cada llamada a \texttt{UpdatePhysics}, antes de evaluar colisiones, cada bola activa avanza según su velocidad y luego ve atenuada esa velocidad por el coeficiente de fricción. El Código~\ref{lst:fisica} muestra el patrón aplicado al eje X (el eje Y es idéntico).
+
+\begin{lstlisting}[style=assemblyStyle, caption={Integración de la posición y aplicación de la fricción.}, label={lst:fisica}]
+    FLD [ESI].Ball.vel_x
+    FADD [ESI].Ball.pos_x     ; pos_x = pos_x + vel_x
+    FSTP [ESI].Ball.pos_x
+
+    FLD [ESI].Ball.vel_x
+    FMUL FRICTION_COEFF       ; vel_x = vel_x * 0.985
+    FSTP [ESI].Ball.vel_x
+\end{lstlisting}
+
+\subsection{Colisiones elásticas entre bolas}
+El corazón de la física es \texttt{ResolveBallCollision}, que intercambia el movimiento entre dos bolas a lo largo de la línea de sus centros. Primero se calcula el producto punto de la velocidad relativa con el vector normal unitario (\texttt{dvn}); si es positivo, las bolas se acercan y procede el intercambio; si no, solo se separan para evitar solapamientos. El Código~\ref{lst:colision} muestra el cálculo de \texttt{dvn} y la decisión.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=1.05]
+    % Ejes de referencia: linea de centros (normal) y plano tangente
+    \draw[gray!60, line width=0.6pt, dash dot] (-1.05,-0.535) -- (3.0,1.53);
+    \draw[blue!50, line width=0.6pt, dashed] (1.17,-0.53) -- (0.26,1.25);
+    % Bola blanca (esfera blanca) y bola objeto (azul, con numero)
+    \shade[ball color=white] (0,0) circle (0.8);
+    \draw[gray!55, line width=0.4pt] (0,0) circle (0.8);
+    \shade[ball color=BolaAzul] (1.425,0.726) circle (0.8);
+    \fill[white] (1.425,0.726) circle (0.30);
+    \node[font=\small\bfseries, text=black] at (1.425,0.726) {3};
+    % Velocidad entrante de la blanca
+    \draw[VerdeUABC, line width=1.2pt, -{Stealth[length=2.6mm]}] (-2.05,0) -- (-0.85,0);
+    \node[font=\scriptsize, VerdeUABC] at (-1.45,0.33) {$\vec{v}$ entrante};
+    % La bola objeto sale por la normal
+    \draw[RojoSalto, line width=1.3pt, -{Stealth[length=2.6mm]}] (1.425,0.726) -- (2.76,1.41);
+    \node[font=\scriptsize, RojoSalto, anchor=west] at (2.88,1.5) {sale el objeto};
+    % La blanca sale por la tangente
+    \draw[blue, line width=1.3pt, -{Stealth[length=2.6mm]}] (0,0) -- (0.68,-1.34);
+    \node[font=\scriptsize, blue, anchor=north west] at (0.78,-1.42) {sale la blanca};
+    % Etiquetas de los ejes
+    \node[font=\scriptsize, gray!50!black, anchor=north east] at (-1.0,-0.55) {línea de centros ($\hat{n}$)};
+    \node[font=\scriptsize, blue!55!black, anchor=south] at (0.18,1.30) {tangente};
+\end{tikzpicture}
+\caption{Colisión elástica de bolas de igual masa: la componente normal de la velocidad se transfiere a la bola objeto y la tangencial la conserva la blanca, separándose ambas en ángulo recto.}
+\label{fig:colision}
+\end{figure}
+
+\begin{lstlisting}[style=assemblyStyle, caption={Producto punto sobre la normal y decisión de intercambio en \texttt{ResolveBallCollision}.}, label={lst:colision}]
+    ; dvn = (v_i - v_j) . n  = (vix-vjx)*nx + (viy-vjy)*ny
+    FLD [ESI].Ball.vel_x
+    FSUB [EDI].Ball.vel_x
+    FMUL temp_nx
+    FSTP temp_val
+    FLD [ESI].Ball.vel_y
+    FSUB [EDI].Ball.vel_y
+    FMUL temp_ny
+    FADD temp_val
+    FSTP temp_dvn             ; dvn guardado
+
+    FLD temp_dvn
+    FCOMP FP_ZERO             ; comparar dvn con 0
+    FNSTSW AX
+    SAHF
+    JBE do_overlap_only       ; dvn <= 0: se separan, no intercambiar
+\end{lstlisting}
+
+\begin{instruccionbox}
+\textbf{Instrucción}
+\begin{lstlisting}
+    FLD temp_dvn
+    FCOMP FP_ZERO
+    FNSTSW AX
+    SAHF
+    JBE do_overlap_only
+\end{lstlisting}
+\textbf{Descripción}
+Compara el valor real \texttt{dvn} contra cero trasladando el resultado de la FPU a las banderas del procesador para poder saltar.
+\end{instruccionbox}
+
+Este fragmento ilustra el idioma de comparación de la FPU. \texttt{FCOMP} compara la cima de la pila con \texttt{FP\_ZERO} y deja el resultado en la palabra de estado de la unidad de punto flotante, no en las banderas del procesador. Para poder usar un salto condicional, \texttt{FNSTSW AX} copia esa palabra de estado al registro \texttt{AX} y \texttt{SAHF} la transfiere a las banderas. Solo entonces \texttt{JBE} (\textit{Jump if Below or Equal}) puede desviar el flujo cuando \texttt{dvn} es menor o igual a cero, caso en el que las bolas se están separando y no debe intercambiarse su velocidad. Esta secuencia de cuatro instrucciones es la traducción a bajo nivel de un simple \texttt{if (dvn <= 0)}.
+
+\subsection{Cálculo del tiro en ensamblador: \texttt{ComputeShot}}
+La rutina \texttt{ComputeShot} recibe las coordenadas de la blanca y del puntero y devuelve el ángulo, la fuerza y la dirección, sin que la interfaz realice trigonometría alguna. El Código~\ref{lst:computeshot} muestra el cálculo del ángulo con \texttt{FPATAN}.
+
+\begin{lstlisting}[style=assemblyStyle, caption={Cálculo del ángulo del tiro con \texttt{FPATAN} (equivalente a \texttt{atan2}).}, label={lst:computeshot}]
+    FLD ptrY
+    FSUB cueY                 ; ST(1) = dy = ptrY - cueY
+    FLD ptrX
+    FSUB cueX                 ; ST(0) = dx = ptrX - cueX
+    FPATAN                    ; ST(0) = atan2(dy, dx)
+    FSTP REAL8 PTR [EDI + 0]  ; angulo del tiro
+\end{lstlisting}
+
+\begin{instruccionbox}
+\textbf{Instrucción}
+\begin{lstlisting}
+    FPATAN
+\end{lstlisting}
+\textbf{Descripción}
+Calcula el arcotangente del cociente \texttt{ST(1)/ST(0)} usando el signo de ambos operandos para determinar el cuadrante correcto.
+\end{instruccionbox}
+
+\texttt{FPATAN} resuelve el problema de obtener la dirección de un vector \((dx, dy)\). A diferencia de un arcotangente simple, considera el signo de las dos componentes para devolver un ángulo en el rango completo \((-\pi, \pi]\), igual que la función \texttt{atan2} de los lenguajes de alto nivel. Cargando primero \(dy\) y luego \(dx\) en la pila, la instrucción consume ambos y deja el ángulo en la cima, que se almacena en el búfer de salida que C\# leerá para orientar el taco. Como el ángulo y las distancias son invariantes ante la traslación entre coordenadas de pantalla y de física, basta con pasar las coordenadas crudas del ratón.
+
+\subsection{Reglas del 8-ball y máquina de estados}
+La aplicación recorre una máquina de estados que la interfaz refleja visualmente. La Figura~\ref{fig:estados} muestra el ciclo de un turno: desde \texttt{Apuntar}, el jugador carga la fuerza, dispara, el motor simula hasta que todo se detiene y \texttt{EvaluateTurn} decide el desenlace.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+    \node[estado] (apuntar) at (0,0) {Apuntar};
+    \node[estado] (cargar) at (3.6,0) {Cargar};
+    \node[estado] (disparar) at (7.2,0) {Disparar};
+    \node[estado] (evaluar) at (10.8,0) {Evaluar};
+    \node[estado] (mano) at (3.6,-2.8) {Bola en mano};
+    \node[estadoFin] (fin) at (10.8,-2.8) {Fin};
+
+    \draw[flecha] (apuntar) -- node[etiqueta, above]{clic} (cargar);
+    \draw[flecha] (cargar) -- node[etiqueta, above]{soltar} (disparar);
+    \draw[flecha] (disparar) -- node[etiqueta, above]{se detiene} (evaluar);
+    \draw[flecha] (evaluar) -- node[etiqueta, right]{emboca la 8} (fin);
+    \draw[flecha] (evaluar) -- node[etiqueta, pos=0.42, above, fill=white, inner sep=1pt]{falta} (mano);
+    \draw[flecha] (mano) -- node[etiqueta, pos=0.55, below, fill=white, inner sep=1pt]{coloca blanca} (apuntar);
+    % retorno repite/cambia turno (arco superior)
+    \draw[flecha] (evaluar.north) to[out=120,in=60]
+        node[etiqueta, above]{repite / cambia turno} (apuntar.north);
+\end{tikzpicture}
+\caption{Máquina de estados de un turno (enum \texttt{AppState}). El estado \texttt{Disparar} corresponde a la simulación física; \texttt{Evaluar} es la llamada a \texttt{EvaluateTurn}.}
+\label{fig:estados}
+\end{figure}
+
+La regla más delicada es que la obligación de jugar la bola 8 es \textbf{por jugador}. Al verificar una posible falta, el motor cuenta cuántas bolas del grupo del jugador en turno seguían en la mesa al \textbf{iniciar} el tiro ---es decir, las que están activas o se embocaron en este mismo turno--- y, según ese conteo, exige que la primera bola golpeada sea de su grupo o la 8. El Código~\ref{lst:reglas} muestra esa decisión.
+
+\begin{lstlisting}[style=assemblyStyle, caption={Decisión por jugador: ¿debe golpear su grupo o la bola 8?}, label={lst:reglas}]
+    ; EDX = bolas del grupo que seguian en mesa al iniciar el tiro
+    XOR EDX, EDX
+fc_count_before:
+    CMP [ESI].Ball.ball_type, EBX   ; del grupo del jugador?
+    JNE fc_count_next
+    CMP [ESI].Ball.is_active, 1      ; sigue activa?
+    JE fc_count_inc
+    CMP [ESI].Ball.was_pocketed, 1   ; o se emboco este turno?
+    JNE fc_count_next
+fc_count_inc:
+    INC EDX
+fc_count_next:
+    ; ... avanzar al siguiente Ball ...
+
+    CMP EDX, 0
+    JG must_hit_own_group   ; aun tenia bolas -> debe golpear su grupo
+    ; si EDX = 0, ya estaba en la 8 -> debe golpear la 8
+\end{lstlisting}
+
+\begin{instruccionbox}
+\textbf{Instrucción}
+\begin{lstlisting}
+    CMP EDX, 0
+    JG must_hit_own_group
+\end{lstlisting}
+\textbf{Descripción}
+Si quedaban bolas del grupo propio al iniciar el tiro, el jugador estaba obligado a golpear su grupo primero; de lo contrario, debía jugar la 8.
+\end{instruccionbox}
+
+Contar las bolas que seguían en mesa \textbf{al iniciar} el tiro (incluyendo las embocadas en la jugada) evita un error concreto, embocar la última bola propia y, en el mismo tiro, tocar legalmente la 8 no debe penalizarse como si el jugador hubiera estado obligado a jugar la 8 desde antes. Esta evaluación independiente para cada jugador permite que, mientras uno ya va por la 8, el rival siga obligado a despejar su grupo, tal como dictan las reglas oficiales del 8-ball.
+
+\subsection{Validación de la colocación de la blanca}
+Tras una falta, el rival recibe ``bola en mano''. La rutina \texttt{PlaceCueBall} valida que la posición elegida quede dentro del área jugable, sin penetrar las bandas, lejos de las troneras y sin solaparse con otra bola. El Código~\ref{lst:place} muestra una de las comprobaciones de borde.
+
+\begin{lstlisting}[style=assemblyStyle, caption={Validación del borde izquierdo en \texttt{PlaceCueBall}.}, label={lst:place}]
+    ; exigir  new_x >= TABLE_LEFT + BALL_RADIUS
+    FLD new_x
+    FSUB TABLE_LEFT
+    FSUB BALL_RADIUS
+    FCOMP FP_ZERO
+    FNSTSW AX
+    SAHF
+    JB place_invalid          ; cae sobre el cojin -> posicion invalida
+\end{lstlisting}
+
+\subsection{Pruebas de ejecución}
+Se realizaron partidas completas verificando tanto el juego normal como los casos límite. La Figura~\ref{fig:juego} muestra la interfaz durante el apuntado, con la línea de predicción y el taco; las Figuras~\ref{fig:foul} y~\ref{fig:victoria} corresponden a una falta con bola en mano y a la victoria al embocar la 8.
+
+\begin{figure}[H]
+\centering
+\fbox{\includegraphics[width=0.7\textwidth]{fotos/juego_apuntando.png}}
+\caption{Apuntado del tiro: el motor predice el primer impacto y la GUI dibuja la línea fantasma, la bola guía y las líneas de salida.}
+\label{fig:juego}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[t]{0.48\textwidth}
+\centering
+\fbox{\includegraphics[width=\textwidth]{fotos/foul_bolaenmano.png}}
+\caption{Falta: el rival recoloca la blanca.}
+\label{fig:foul}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.48\textwidth}
+\centering
+\fbox{\includegraphics[width=\textwidth]{fotos/victoria_8.png}}
+\caption{Victoria al embocar legalmente la bola 8.}
+\label{fig:victoria}
+\end{subfigure}
+\caption{Pruebas de los casos límite de las reglas del 8-ball.}
+\label{fig:pruebas}
+\end{figure}
+
+\subsection{Resumen de la división de responsabilidades}
+La Tabla~\ref{tab:division} confirma que la totalidad de la lógica reside en ensamblador y que C\# se limita a la presentación y la captura de entrada.
+
+\begin{table}[H]
+\centering
+\caption{División de responsabilidades entre el motor (MASM) y la interfaz (C\#).}
+\label{tab:division}
+\small
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{
+    >{\raggedright\arraybackslash}p{6.5cm}
+    >{\centering\arraybackslash}p{3.2cm}
+    >{\centering\arraybackslash}p{3.2cm}
+}
+\toprule
+\rowcolor{VerdeUABC}
+\color{white}\textbf{Tarea} &
+\color{white}\textbf{Motor (MASM)} &
+\color{white}\textbf{Interfaz (C\#)} \\
+\midrule
+\rowcolor{rowLight}
+Física, fricción y colisiones & Sí & --- \\
+Reglas, faltas y turnos & Sí & --- \\
+\rowcolor{rowLight}
+Ángulo, fuerza y predicción del tiro & Sí & --- \\
+Dibujo de mesa, bolas y taco & --- & Sí \\
+\rowcolor{rowLight}
+Captura del ratón & --- & Sí \\
+Mostrar marcador y mensajes & --- & Sí \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\newpage
+\section{Conclusiones}
+Desarrollar este proyecto nos permitió comprender, de una forma mucho más profunda que en las prácticas previas, lo que implica sostener un sistema interactivo en tiempo real con toda su lógica escrita en ensamblador. Confinar la física y las reglas al motor y reservar para C\# únicamente el dibujo hizo evidente cuánto resuelve de manera implícita un lenguaje de alto nivel, la trigonometría del tiro, la raíz cuadrada de una distancia o la simple comparación de dos números reales tuvieron que expresarse explícitamente sobre la pila de la unidad de punto flotante, encadenando \texttt{FLD}, \texttt{FSTP} y el idioma \texttt{FCOMP\,/\,FNSTSW\,/\,SAHF}.
+
+El manejo de la FPU fue el aprendizaje más valioso. Entender que sus registros funcionan como una pila y que cada \texttt{FLD} debe tener su correspondiente consumo nos obligó a llevar un control cuidadoso del balance de la pila en cada rutina; un valor olvidado en \texttt{ST(0)} corrompía silenciosamente la siguiente operación, lo que se convirtió en la fuente de error más difícil de rastrear.
+
+La interoperabilidad entre C\# y el ensamblador resultó más accesible de lo esperado una vez comprendida la convención \texttt{stdcall} y la importancia de que las estructuras compartidas tuvieran exactamente la misma disposición en memoria de ambos lados. Cualquier discrepancia en el tamaño de un campo se manifestaba como datos basura.
+
+\newpage
+\nocite{*}
+\printbibliography[title={Referencias}]
+\addcontentsline{toc}{section}{Referencias}
+
+\appendix
+\section{Repositorio de código}
+El código completo del proyecto híbrido (C\#/WPF + \textbf{MASM x86}), junto con las instrucciones de compilación y ejecución, se encuentra disponible en el siguiente repositorio de GitHub:
+
+\begin{center}
+\url{https://github.com/ApoloEM/OyAdC_ProyectoFinal2026-1}
+\end{center}
+
+\end{document}
