@@ -1,0 +1,598 @@
+<!-- ============================================================ -->
+<!-- MainWindow.xaml v4 — sobrio con acentos cafe/dorado          -->
+<!-- ============================================================ -->
+<Window x:Class="BillarGUI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Billar 8-Ball &#x00B7; Erick-Ale OAC 2026-1"
+        Width="1080" Height="720"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        Background="#1B2631">
+
+    <Window.Resources>
+        <!-- Pincel reutilizable: madera barnizada -->
+        <LinearGradientBrush x:Key="WoodBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#7A4F2A" Offset="0"/>
+            <GradientStop Color="#5D3A1A" Offset="0.5"/>
+            <GradientStop Color="#3D2510" Offset="1"/>
+        </LinearGradientBrush>
+
+        <SolidColorBrush x:Key="GoldBrush" Color="#D4A642"/>
+
+        <Style x:Key="MenuButtonStyle" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="20,12"/>
+            <Setter Property="Margin" Value="0,4"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
+        <Storyboard x:Key="ToastAnimation">
+            <DoubleAnimation Storyboard.TargetName="ToastBorder"
+                             Storyboard.TargetProperty="Opacity"
+                             From="0" To="1" Duration="0:0:0.20"/>
+            <DoubleAnimation Storyboard.TargetName="ToastScale"
+                             Storyboard.TargetProperty="ScaleX"
+                             From="0.7" To="1" Duration="0:0:0.30">
+                <DoubleAnimation.EasingFunction>
+                    <BackEase EasingMode="EaseOut" Amplitude="0.5"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="ToastScale"
+                             Storyboard.TargetProperty="ScaleY"
+                             From="0.7" To="1" Duration="0:0:0.30">
+                <DoubleAnimation.EasingFunction>
+                    <BackEase EasingMode="EaseOut" Amplitude="0.5"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="ToastBorder"
+                             Storyboard.TargetProperty="Opacity"
+                             From="1" To="0"
+                             BeginTime="0:0:2.0" Duration="0:0:0.45"/>
+        </Storyboard>
+    </Window.Resources>
+
+    <Grid>
+        <!-- ============ CAPA 1: JUEGO ============ -->
+        <Grid x:Name="GameLayer">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="48"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="92"/>
+            </Grid.RowDefinitions>
+
+            <!-- ===== Barra superior ===== -->
+            <Grid Grid.Row="0" Margin="14,10,14,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Boton Menu estilo arcade -->
+                <Button x:Name="MenuButton" Grid.Column="0"
+                        Click="MenuButton_Click"
+                        Width="92" Height="36"
+                        Background="Transparent"
+                        BorderThickness="0" Cursor="Hand">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bd" Background="#1F4F2A"
+                                    CornerRadius="6"
+                                    BorderBrush="{StaticResource GoldBrush}"
+                                    BorderThickness="2">
+                                <StackPanel Orientation="Horizontal"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center">
+                                    <TextBlock Text="❚❚" Foreground="{StaticResource GoldBrush}"
+                                               FontSize="13" FontWeight="Bold"
+                                               Margin="0,0,6,0"/>
+                                    <TextBlock Text="Menú" Foreground="{StaticResource GoldBrush}"
+                                               FontSize="13" FontWeight="Bold"/>
+                                </StackPanel>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="Background" Value="#2A6A3A"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+
+                <!-- Mensaje de estado del juego (centrado) -->
+                <Border Grid.Column="1" Margin="14,0"
+                        Background="#0F1F2E" CornerRadius="6"
+                        BorderBrush="{StaticResource GoldBrush}"
+                        BorderThickness="1.5"
+                        Padding="14,4"
+                        VerticalAlignment="Center">
+                    <TextBlock x:Name="MessageText"
+                               Text="Haz clic y arrastra para apuntar. Suelta para tirar."
+                               Foreground="#ECF0F1" FontSize="13"
+                               HorizontalAlignment="Center"
+                               TextTrimming="CharacterEllipsis"/>
+                </Border>
+
+                <Button x:Name="RestartButton" Grid.Column="2"
+                        Content="Nueva Partida" Click="RestartButton_Click"
+                        Background="#2980B9" Foreground="White"
+                        FontWeight="SemiBold" Padding="16,4"
+                        BorderThickness="0" Cursor="Hand"/>
+            </Grid>
+
+            <!-- ===== Area de juego ===== -->
+            <Grid Grid.Row="1" Margin="14,10,14,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="110"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Tablero con marco cafe delgado -->
+                <Border Grid.Column="0" CornerRadius="10"
+                        Background="{StaticResource WoodBrush}"
+                        BorderBrush="{StaticResource GoldBrush}"
+                        BorderThickness="1.5"
+                        ClipToBounds="True">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="10" ShadowDepth="0"
+                                          Color="#000000" Opacity="0.5"/>
+                    </Border.Effect>
+                    <Canvas x:Name="GameCanvas"
+                            Background="Transparent"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            MouseMove="GameCanvas_MouseMove"
+                            MouseLeftButtonDown="GameCanvas_MouseLeftButtonDown"
+                            MouseLeftButtonUp="GameCanvas_MouseLeftButtonUp"
+                            MouseRightButtonDown="GameCanvas_MouseRightButtonDown">
+                        <Rectangle x:Name="FieltroRect">
+                            <Rectangle.Fill>
+                                <RadialGradientBrush GradientOrigin="0.5,0.5"
+                                                     Center="0.5,0.5"
+                                                     RadiusX="0.7" RadiusY="0.9">
+                                    <GradientStop Color="#0F7A2E" Offset="0"/>
+                                    <GradientStop Color="#0B6623" Offset="0.6"/>
+                                    <GradientStop Color="#08501C" Offset="1"/>
+                                </RadialGradientBrush>
+                            </Rectangle.Fill>
+                        </Rectangle>
+                        <!-- Rombos discretos en el marco -->
+                        <Canvas x:Name="DiamondLayer"/>
+                        <!-- Troneras -->
+                        <Canvas x:Name="PocketLayer"/>
+                    </Canvas>
+                </Border>
+
+                <!-- ===== Barra de potencia (estilo madera/dorado) ===== -->
+                <Border Grid.Column="1" Margin="8,0,0,0"
+                        CornerRadius="8"
+                        Background="{StaticResource WoodBrush}"
+                        BorderBrush="{StaticResource GoldBrush}"
+                        BorderThickness="1.5"
+                        Padding="6,8">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Margin="0,0,0,6">
+                            <TextBlock Text="&#x26A1;" Foreground="{StaticResource GoldBrush}"
+                                       FontSize="16" FontWeight="Bold"
+                                       HorizontalAlignment="Center"/>
+                            <TextBlock x:Name="PowerPercentText"
+                                       Text="0%" Foreground="#BDC3C7"
+                                       FontSize="12" FontWeight="Bold"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,2,0,0"/>
+                        </StackPanel>
+
+                        <!-- Barra continua (reemplaza los 10 segmentos) -->
+                        <Border x:Name="PowerBarContainer" Grid.Row="1" 
+                        CornerRadius="3" Background="#1A0E05" 
+                        Height="420" Width="65" Margin="3">
+                            <Grid>
+                                <Rectangle x:Name="PowerBarFill" 
+                                HorizontalAlignment="Stretch" 
+                                VerticalAlignment="Bottom"
+                                Height="0"
+                                RadiusX="2" RadiusY="2">
+                                    <Rectangle.Fill>
+                                        <LinearGradientBrush StartPoint="0,1" EndPoint="0,0">
+                                            <GradientStop Color="#2ECC71" Offset="0.0"/>
+                                            <!-- verde -->
+                                            <GradientStop Color="#F1C40F" Offset="0.5"/>
+                                            <!-- amarillo -->
+                                            <GradientStop Color="#E74C3C" Offset="1.0"/>
+                                            <!-- rojo -->
+                                        </LinearGradientBrush>
+                                    </Rectangle.Fill>
+                                </Rectangle>
+                            </Grid>
+                        </Border>
+
+                        <TextBlock Grid.Row="2" Text="FUERZA"
+                                   Foreground="{StaticResource GoldBrush}"
+                                   FontSize="9" FontWeight="Bold"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,6,0,0"/>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- ===== Panel inferior estilo arcade ===== -->
+            <Border Grid.Row="2" Margin="14,0,14,12"
+                    CornerRadius="10"
+                    Background="{StaticResource WoodBrush}"
+                    BorderBrush="{StaticResource GoldBrush}"
+                    BorderThickness="2">
+                <Grid Margin="14,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Bloque jugador 1 -->
+                    <Border Grid.Column="0" x:Name="P1Border"
+                            CornerRadius="6" Padding="12,6"
+                            Background="#2A1A0E"
+                            BorderBrush="#5D3A1A" BorderThickness="2"
+                            VerticalAlignment="Stretch">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Ellipse x:Name="P1GroupBall"
+                                         Grid.Column="0"
+                                         Width="18" Height="18"
+                                         Margin="0,0,10,0"
+                                         Visibility="Collapsed"
+                                         VerticalAlignment="Center"/>
+                                <TextBlock x:Name="Player1Label"
+                                           Grid.Column="1"
+                                           Text="JUGADOR 1"
+                                           Foreground="{StaticResource GoldBrush}"
+                                           FontSize="15" FontWeight="Bold"
+                                           VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis"/>
+                                <TextBlock x:Name="Player1Score"
+                                           Grid.Column="2"
+                                           Text="0/7"
+                                           Foreground="#3498DB"
+                                           FontSize="14" FontWeight="Bold"
+                                           VerticalAlignment="Center"
+                                           Margin="8,0,0,0"/>
+                            </Grid>
+                            <TextBlock x:Name="P1Status" Grid.Row="1"
+                                       Text="" Foreground="#BDC3C7"
+                                       FontSize="10"
+                                       HorizontalAlignment="Left"
+                                       Margin="28,3,0,0"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Flecha izquierda -->
+                    <Border Grid.Column="1" x:Name="TurnLeftBox"
+                            Width="36" Height="36" Margin="12,0"
+                            CornerRadius="5"
+                            Background="#5D3A1A"
+                            BorderBrush="#8B5A2B" BorderThickness="1.5"
+                            VerticalAlignment="Center">
+                        <TextBlock x:Name="TurnLeftArrow" Text="&#x25C0;"
+                                   Foreground="#8B7855"
+                                   FontSize="14" FontWeight="Bold"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
+                    </Border>
+
+                    <!-- Bola blanca central con glow -->
+                    <Grid Grid.Column="2" Width="110" Height="56" Margin="6,0">
+                        <Ellipse x:Name="CenterBallGlow" Width="110" Height="56"
+                                 Opacity="0">
+                            <Ellipse.Fill>
+                                <RadialGradientBrush>
+                                    <GradientStop Color="#FFF1C40F" Offset="0"/>
+                                    <GradientStop Color="#00F1C40F" Offset="1"/>
+                                </RadialGradientBrush>
+                            </Ellipse.Fill>
+                        </Ellipse>
+                        <Ellipse Width="46" Height="46"
+                                 HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Ellipse.Fill>
+                                <RadialGradientBrush GradientOrigin="0.32,0.30"
+                                                     Center="0.32,0.30"
+                                                     RadiusX="0.85" RadiusY="0.85">
+                                    <GradientStop Color="#FFFFFF" Offset="0"/>
+                                    <GradientStop Color="#E8E8E8" Offset="0.55"/>
+                                    <GradientStop Color="#9C9C9C" Offset="1"/>
+                                </RadialGradientBrush>
+                            </Ellipse.Fill>
+                        </Ellipse>
+                        <Ellipse Width="13" Height="13"
+                                 HorizontalAlignment="Center"
+                                 VerticalAlignment="Center"
+                                 Stroke="#0F7A2E" StrokeThickness="2"
+                                 Fill="Transparent"/>
+                    </Grid>
+
+                    <!-- Flecha derecha -->
+                    <Border Grid.Column="3" x:Name="TurnRightBox"
+                            Width="36" Height="36" Margin="12,0"
+                            CornerRadius="5"
+                            Background="#5D3A1A"
+                            BorderBrush="#8B5A2B" BorderThickness="1.5"
+                            VerticalAlignment="Center">
+                        <TextBlock x:Name="TurnRightArrow" Text="&#x25B6;"
+                                   Foreground="#8B7855"
+                                   FontSize="14" FontWeight="Bold"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
+                    </Border>
+
+                    <!-- Bloque jugador 2 -->
+                    <Border Grid.Column="4" x:Name="P2Border"
+                            CornerRadius="6" Padding="12,6"
+                            Background="#2A1A0E"
+                            BorderBrush="#5D3A1A" BorderThickness="2"
+                            VerticalAlignment="Stretch">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="Player2Score"
+                                           Grid.Column="0"
+                                           Text="0/7"
+                                           Foreground="#3498DB"
+                                           FontSize="14" FontWeight="Bold"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock x:Name="Player2Label"
+                                           Grid.Column="1"
+                                           Text="JUGADOR 2"
+                                           Foreground="#ECF0F1"
+                                           FontSize="15" FontWeight="Bold"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Right"
+                                           TextTrimming="CharacterEllipsis"/>
+                                <Ellipse x:Name="P2GroupBall"
+                                         Grid.Column="2"
+                                         Width="18" Height="18"
+                                         Margin="10,0,0,0"
+                                         Visibility="Collapsed"
+                                         VerticalAlignment="Center"/>
+                            </Grid>
+                            <TextBlock x:Name="P2Status" Grid.Row="1"
+                                       Text="" Foreground="#BDC3C7"
+                                       FontSize="10"
+                                       HorizontalAlignment="Right"
+                                       Margin="0,3,28,0"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- ============ CAPA 2: TOAST ============ -->
+        <Border x:Name="ToastBorder"
+                HorizontalAlignment="Center" VerticalAlignment="Center"
+                CornerRadius="14" Padding="36,18"
+                Background="#EE0F1A24"
+                BorderBrush="{StaticResource GoldBrush}" BorderThickness="2"
+                Opacity="0" IsHitTestVisible="False">
+            <Border.RenderTransform>
+                <ScaleTransform x:Name="ToastScale" CenterX="0.5" CenterY="0.5"
+                                ScaleX="0.7" ScaleY="0.7"/>
+            </Border.RenderTransform>
+            <Border.RenderTransformOrigin>0.5,0.5</Border.RenderTransformOrigin>
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="20" ShadowDepth="0"
+                                  Color="#000000" Opacity="0.7"/>
+            </Border.Effect>
+            <StackPanel>
+                <TextBlock x:Name="ToastTitle" Text=""
+                           Foreground="{StaticResource GoldBrush}"
+                           FontSize="22" FontWeight="Bold"
+                           HorizontalAlignment="Center"/>
+                <TextBlock x:Name="ToastSubtitle" Text=""
+                           Foreground="#ECF0F1"
+                           FontSize="13"
+                           HorizontalAlignment="Center" Margin="0,4,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- ============ CAPA 3: MENU OVERLAY ============ -->
+        <Grid x:Name="MenuOverlay" Background="#CC0A0E14" Visibility="Visible">
+
+            <Border x:Name="MenuMainBorder"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Background="#1B2B3A" CornerRadius="16"
+                    Padding="40,30" MinWidth="460"
+                    BorderBrush="#0B6623" BorderThickness="2">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="30" ShadowDepth="0"
+                                      Color="#000000" Opacity="0.8"/>
+                </Border.Effect>
+
+                <StackPanel x:Name="MenuMainPanel">
+                    <TextBlock Text="🎱 BILLAR 8-BALL 🎱"
+                               Foreground="#F1C40F" FontSize="32" FontWeight="Bold"
+                               HorizontalAlignment="Center" Margin="0,0,0,6"/>
+                    <TextBlock Text="Organización y Arquitectura de Computadoras"
+                               Foreground="#7F8C8D" FontSize="12"
+                               HorizontalAlignment="Center" Margin="0,0,0,22"/>
+
+                    <StackPanel x:Name="NamesPanel" Margin="0,0,0,16">
+                        <TextBlock Text="NOMBRES DE LOS JUGADORES"
+                                   Foreground="#95A5A6" FontSize="10" FontWeight="Bold"
+                                   HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Jugador 1" Foreground="#F1C40F"
+                                           FontSize="11" FontWeight="SemiBold"
+                                           Margin="0,0,0,3"/>
+                                <TextBox x:Name="P1NameInput"
+                                         Text="Jugador1"
+                                         FontSize="13" Padding="8,6"
+                                         Background="#0F1F2E" Foreground="White"
+                                         BorderBrush="#34495E" BorderThickness="1.5"
+                                         CaretBrush="White"
+                                         MaxLength="14"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Jugador 2" Foreground="#ECF0F1"
+                                           FontSize="11" FontWeight="SemiBold"
+                                           Margin="0,0,0,3"/>
+                                <TextBox x:Name="P2NameInput"
+                                         Text="Jugador2"
+                                         FontSize="13" Padding="8,6"
+                                         Background="#0F1F2E" Foreground="White"
+                                         BorderBrush="#34495E" BorderThickness="1.5"
+                                         CaretBrush="White"
+                                         MaxLength="14"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+
+                    <Button x:Name="BtnStart"
+                            Content="&#x25B6;   INICIAR PARTIDA"
+                            Click="BtnStart_Click"
+                            Background="#27AE60"
+                            Style="{StaticResource MenuButtonStyle}"/>
+
+                    <Button x:Name="BtnRestartFromMenu"
+                            Content="&#x27F3;   REINICIAR PARTIDA"
+                            Click="BtnRestartFromMenu_Click"
+                            Background="#E67E22"
+                            Style="{StaticResource MenuButtonStyle}"
+                            Visibility="Collapsed"/>
+
+                    <Button x:Name="BtnCredits" Content="&#x2605;   CRÉDITOS"
+                            Click="BtnCredits_Click"
+                            Background="#2980B9"
+                            Style="{StaticResource MenuButtonStyle}"/>
+                    <Button x:Name="BtnHowTo" Content="&#x2753;   CÓMO JUGAR"
+                            Click="BtnHowTo_Click"
+                            Background="#8E44AD"
+                            Style="{StaticResource MenuButtonStyle}"/>
+                    <Button x:Name="BtnExit" Content="&#x23FB;   SALIR"
+                            Click="BtnExit_Click"
+                            Background="#C0392B"
+                            Style="{StaticResource MenuButtonStyle}"/>
+                </StackPanel>
+            </Border>
+
+            <Border x:Name="CreditsPanel" Visibility="Collapsed"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Background="#1B2B3A" CornerRadius="16"
+                    Padding="40,30" MinWidth="480"
+                    BorderBrush="#F1C40F" BorderThickness="2">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="30" ShadowDepth="0"
+                                      Color="#000000" Opacity="0.8"/>
+                </Border.Effect>
+                <StackPanel>
+                    <TextBlock Text="&#x2605; CRÉDITOS &#x2605;"
+                               Foreground="#F1C40F" FontSize="28" FontWeight="Bold"
+                               HorizontalAlignment="Center" Margin="0,0,0,24"/>
+
+                    <Border Background="#0F1F2E" CornerRadius="8" Padding="20,16" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="&#x2736; Erick Anselmo Moya Monreal &#x2736;"
+                                       Foreground="#E74C3C" FontSize="18" FontWeight="Bold"
+                                       HorizontalAlignment="Center"/>
+                            <TextBlock Text="01110604"
+                                       Foreground="#95A5A6" FontSize="13"
+                                       HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="#0F1F2E" CornerRadius="8" Padding="20,16" Margin="0,0,0,20">
+                        <StackPanel>
+                            <TextBlock Text="♥ Alexandra Martínez Zavala ♥"
+                                       Foreground="#E91E63" FontSize="18" FontWeight="Bold"
+                                       HorizontalAlignment="Center"/>
+                            <TextBlock Text="01178815"
+                                       Foreground="#95A5A6" FontSize="13"
+                                       HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Button Content="&#x21A9; VOLVER" Click="BtnBackToMenu_Click"
+                            Background="#34495E"
+                            Style="{StaticResource MenuButtonStyle}"
+                            FontSize="14" Padding="20,10"/>
+                </StackPanel>
+            </Border>
+
+            <Border x:Name="HowToPanel" Visibility="Collapsed"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Background="#1B2B3A" CornerRadius="16"
+                    Padding="40,30" MinWidth="520" MaxWidth="560"
+                    BorderBrush="#8E44AD" BorderThickness="2">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="30" ShadowDepth="0"
+                                      Color="#000000" Opacity="0.8"/>
+                </Border.Effect>
+                <StackPanel>
+                    <TextBlock Text="&#x2605; CÓMO JUGAR &#x2605;"
+                               Foreground="#BB8FCE" FontSize="26" FontWeight="Bold"
+                               HorizontalAlignment="Center" Margin="0,0,0,20"/>
+
+                    <TextBlock Foreground="#ECF0F1" FontSize="13" TextWrapping="Wrap"
+                               LineHeight="22" Margin="0,0,0,8">
+                        <Run FontWeight="Bold" Foreground="#F1C40F">Controles:</Run>
+                        <LineBreak/>
+                        • Mover mouse: apuntar<LineBreak/>
+                        • Clic izquierdo + arrastrar: cargar potencia<LineBreak/>
+                        • Soltar clic: disparar<LineBreak/>
+                        • Clic derecho: cancelar tiro<LineBreak/>
+                        • Tras foul: clic izquierdo para colocar la blanca
+                    </TextBlock>
+
+                    <TextBlock Foreground="#ECF0F1" FontSize="13" TextWrapping="Wrap"
+                               LineHeight="22" Margin="0,16,0,0">
+                        <Run FontWeight="Bold" Foreground="#F1C40F">Reglas básicas:</Run>
+                        <LineBreak/>
+                        • El Jugador 1 realiza el quiebre inicial<LineBreak/>
+                        • La primera bola embocada define tu grupo (lisas o rayadas)<LineBreak/>
+                        • Emboca todas tus 7 bolas antes de intentar la 8<LineBreak/>
+                        • Embocar la 8 prematuramente = derrota<LineBreak/>
+                        • Embocar la blanca = foul (oponente recibe ball-in-hand)
+                    </TextBlock>
+
+                    <Button Content="&#x21A9; VOLVER" Click="BtnBackToMenu_Click"
+                            Background="#34495E"
+                            Style="{StaticResource MenuButtonStyle}"
+                            FontSize="14" Padding="20,10" Margin="0,24,0,0"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>
